@@ -13,6 +13,7 @@ from prospecpy.anchor_points import (
     get_start_end_anchorpoints,
 )
 from prospecpy.baseline import (
+    arpls_baseline,   # arPLS 6.19
     baseline_correction,
     baseline_spline,
     get_baseline_peak_index,
@@ -351,6 +352,37 @@ class ProSpecPy:  # class object running to organize script from the src directo
 
         else:
             print("Please set and save the thresholds and adjustment factor for baseline spline!")
+    
+    # arPLS baseline correction method 6.19
+    def subtract_baseline_arpls(
+        self,
+        lam=1e5,
+        ratio=1e-6,
+        max_iter=50,
+    ):
+        """
+        Baseline correction using arPLS.
+        """
+
+        raw_x, raw_y = raw_spline(
+            self.get_subtracted_spectra_wavenumber(),
+            self.get_subtracted_spectra_absorbance(),
+        )
+
+        baseline = arpls_baseline(
+            raw_y,
+            lam=lam,
+            ratio=ratio,
+            max_iter=max_iter,
+        )
+
+        corrected = raw_y - baseline
+
+        corrected[corrected < 0] = 0
+
+        self.baseline_corrected_abs = corrected
+
+        return corrected
 
     # Section 6: Gaussian and Lorentzian fitting methods
     def gaussian_fit_baseline(self, save=True, showplot=True, verbose=True):
