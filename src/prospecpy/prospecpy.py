@@ -353,12 +353,15 @@ class ProSpecPy:  # class object running to organize script from the src directo
         else:
             print("Please set and save the thresholds and adjustment factor for baseline spline!")
     
-    # arPLS baseline correction method 6.19
+    # arPLS baseline correction method  6.19
     def subtract_baseline_arpls(
         self,
         lam=1e5,
         ratio=1e-6,
         max_iter=50,
+        save=True,
+        showplot=True,
+        verbose=True,
     ):
         """
         Baseline correction using arPLS.
@@ -377,10 +380,75 @@ class ProSpecPy:  # class object running to organize script from the src directo
         )
 
         corrected = raw_y - baseline
-
         corrected[corrected < 0] = 0
 
         self.baseline_corrected_abs = corrected
+
+        peak_wv, peak_abs = get_peaks_absorbance(
+            self.second_deriv_peak_dict["peak_wavenumber"],
+            raw_x,
+            raw_y,
+        )
+
+        peak_wv_index, peak_wv_baseline, peak_baseline_abs = get_baseline_peak_index(
+            self.baseline_corrected_abs,
+            raw_x,
+            peak_wv,
+        )
+
+        self.peak_width_half_height = get_peak_wid_at_half_height(
+            self.baseline_corrected_abs,
+            peak_wv_index,
+        )
+
+        self.baseline_corrected_peak_dict["peak_index"] = peak_wv_index
+        self.baseline_corrected_peak_dict["wavenumber"] = peak_wv_baseline
+        self.baseline_corrected_peak_dict["absorbance"] = peak_baseline_abs
+
+        baseline_corrected_fig = plot_baseline_corrected_data(
+            raw_x,
+            self.baseline_corrected_abs,
+            peak_wv_baseline,
+            peak_baseline_abs,
+            self.sample_name,
+            self.batch_id,
+            showplot,
+        )
+
+        if save:
+            filename = "arpls_baseline_subtracted_spectra"
+            self.save_plot(baseline_corrected_fig, filename, verbose=verbose)
+
+            data_df = pd.DataFrame(
+                {
+                    "wavenumber": raw_x,
+                    "absorbance": self.baseline_corrected_abs,
+                }
+            )
+            csv_filename = "arpls_baseline_corrected_data.csv"
+            data_df.to_csv(os.path.join(self.output_folder, csv_filename), index=False)
+
+            if verbose:
+                print(
+                    f"arPLS baseline corrected csv data saved to "
+                    f"{os.path.join(self.output_folder, csv_filename)}"
+                )
+
+            baseline_peak_filename = os.path.join(
+                self.output_folder,
+                "arpls_baseline_corrected_peak_info.csv",
+            )
+
+            keys = self.baseline_corrected_peak_dict.keys()
+            values = zip(*self.baseline_corrected_peak_dict.values(), strict=False)
+
+            with open(baseline_peak_filename, "w", newline="") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(keys)
+                writer.writerows(values)
+
+            if verbose:
+                print(f"arPLS baseline corrected peak info saved to {baseline_peak_filename}")
 
         return corrected
 
