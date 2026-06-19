@@ -3,8 +3,10 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy import sparse      # arPLS 6.19
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
+from scipy.sparse.linalg import spsolve  # arPLS 6.19
 
 from prospecpy.second_deriv import flip_order
 
@@ -92,6 +94,53 @@ def baseline_correction(baseline_points, raw_wavenumber, raw_absorbance):
             baseline_corrected_abs.append(raw_minus_baseline)
 
     return baseline_corrected_abs
+
+
+# arPLS 6.19
+def arpls_baseline(raw_absorbance, lam=1e5, ratio=1e-6, max_iter=50):
+    """
+    Estimate a baseline using asymmetrically reweighted penalized least squares.
+
+    This implementation follows the arPLS algorithm proposed by Baek et al.
+    """
+    y = np.asarray(raw_absorbance, dtype=float)
+    n = len(y)
+
+    if n < 3:
+        raise ValueError("arPLS requires at least 3 data points.")
+
+    diff_matrix = sparse.diags([1, -2, 1], [0, 1, 2], shape=(n - 2, n))
+    penalty_matrix = lam * diff_matrix.T @ diff_matrix
+
+    weights = np.ones(n)
+
+    for _ in range(max_iter):
+        weight_matrix = sparse.diags(weights, 0, shape=(n, n))
+        baseline = spsolve(weight_matrix + penalty_matrix, weights * y)
+
+        residual = y - baseline
+        negative_residual = residual[residual < 0]
+
+        if len(negative_residual) == 0:
+            break
+
+        mean_negative = np.mean(negative_residual)
+        std_negative = np.std(negative_residual)
+
+        if std_negative == 0:
+            break
+
+        new_weights = 1 / (
+            1 + np.exp(2 * (residual - (2 * std_negative - mean_negative)) / std_negative)
+        )
+
+        if np.linalg.norm(new_weights - weights) / np.linalg.norm(weights) < ratio:
+            weights = new_weights
+            break
+
+        weights = new_weights
+
+    return baseline
 
 
 def get_baseline_peak_index(baseline_corrected_abs, rawdata_wavenumber, raw_data_peak_wv):
