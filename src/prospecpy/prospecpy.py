@@ -19,6 +19,7 @@ from prospecpy.baseline import (
     get_baseline_peak_index,
     plot_baseline_corrected_data,
     raw_spline,
+    arpls_baseline_second_deriv_weights, # 7.1 arPLS
 )
 from prospecpy.cut_range import cut_range_subtraction_multiple_wv
 from prospecpy.peak_fit import peak_fit
@@ -372,8 +373,10 @@ class ProSpecPy:  # class object running to organize script from the src directo
             self.get_subtracted_spectra_absorbance(),
         )
 
-        baseline = arpls_baseline(
+        baseline = arpls_baseline_second_deriv_weights(
             raw_y,
+            raw_x,
+            self.second_deriv_peak_dict["peak_wavenumber"],
             lam=lam,
             ratio=ratio,
             max_iter=max_iter,

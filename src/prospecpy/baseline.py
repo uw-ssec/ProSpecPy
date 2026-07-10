@@ -142,6 +142,74 @@ def arpls_baseline(raw_absorbance, lam=1e5, ratio=1e-6, max_iter=50):
 
     return baseline
 
+def arpls_baseline_second_deriv_weights(             # peak-position guided arPLS
+    raw_absorbance,
+    raw_wavenumber,
+    peak_wavenumbers,
+    lam=1e5,
+    ratio=1e-6,
+    max_iter=50,
+    peak_window=35,
+    peak_weight=0.3,
+    alpha=0.8,
+):
+    """
+    arPLS baseline correction using detected peak positions as soft prior weights.
+    Peak regions are down-weighted, but not completely excluded.
+    """
+    y = np.asarray(raw_absorbance, dtype=float)
+    x = np.asarray(raw_wavenumber, dtype=float)
+
+    n = len(y)
+
+    if n < 3:
+        raise ValueError("arPLS requires at least 3 data points.")
+
+    mask_weights = np.ones(n)
+
+    for peak_wv in peak_wavenumbers:
+        peak_idx = np.argmin(np.abs(x - peak_wv))
+
+        start = max(0, peak_idx - peak_window)
+        end = min(n, peak_idx + peak_window + 1)
+
+        mask_weights[start:end] = peak_weight
+
+    diff_matrix = sparse.diags([1, -2, 1], [0, 1, 2], shape=(n - 2, n))
+    penalty_matrix = lam * diff_matrix.T @ diff_matrix
+
+    weights = np.ones(n)
+
+    for _ in range(max_iter):
+        weight_matrix = sparse.diags(weights, 0, shape=(n, n))
+        baseline = spsolve(weight_matrix + penalty_matrix, weights * y)
+
+        residual = y - baseline
+        negative_residual = residual[residual < 0]
+
+        if len(negative_residual) == 0:
+            break
+
+        mean_negative = np.mean(negative_residual)
+        std_negative = np.std(negative_residual)
+
+        if std_negative == 0:
+            break
+
+        arpls_weights = 1 / (
+            1 + np.exp(2 * (residual - (2 * std_negative - mean_negative)) / std_negative)
+        )
+
+        # Combine original arPLS weights with peak-position prior weights
+        new_weights = alpha * arpls_weights + (1 - alpha) * mask_weights
+
+        if np.linalg.norm(new_weights - weights) / np.linalg.norm(weights) < ratio:
+            weights = new_weights
+            break
+
+        weights = new_weights
+
+    return baseline
 
 def get_baseline_peak_index(baseline_corrected_abs, rawdata_wavenumber, raw_data_peak_wv):
     # get all the peaks index in the baselinecorrected data with no thresholds
