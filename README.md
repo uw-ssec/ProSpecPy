@@ -48,12 +48,19 @@ Click the button below 👇
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/uw-ssec/ProSpecPy?quickstart=1)
 
-After the codespace is loaded up, begin by creating two folders within the main directory: `data` and `notebooks`. Once you have created the `notebooks` folder, make a copy of the [workflow demo notebook](https://github.com/ProSpecPy/ProSpecPy/blob/main/docs/workflow_demo.ipynb) from the doc folder and move it over. Once you have done so, change the name to reflect the name of your run or experiment.
+After the codespace is loaded up, begin by creating two folders within the main
+directory: `data` and `notebooks`. Once you have created the `notebooks` folder,
+make a copy of the
+[workflow demo notebook](https://github.com/ProSpecPy/ProSpecPy/blob/main/docs/workflow_demo.ipynb)
+from the doc folder and move it over. Once you have done so, change the name to
+reflect the name of your run or experiment.
 
 ## Contributing
 
-ProSpecPy is currently under development after an initial release. If you are interested in contributing, please check out our open 
-[issues](https://github.com/ProSpecPy/ProSpecPy/issues) and fork the repository to begin making changes within our object-oriented architecture.
+ProSpecPy is currently under development after an initial release. If you are
+interested in contributing, please check out our open
+[issues](https://github.com/ProSpecPy/ProSpecPy/issues) and fork the repository
+to begin making changes within our object-oriented architecture.
 
 ## License
 
