@@ -25,7 +25,7 @@ import shutil
 import sys
 import warnings
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 try:
@@ -226,9 +226,7 @@ def parse_args() -> argparse.Namespace:
     arpls_group.add_argument("--baseline-family", default="arPLS")
     arpls_group.add_argument("--baseline-method", default="peak_guided_arPLS")
     arpls_group.add_argument("--baseline-implementation", default="Erni_ProSpecPy_week6")
-    arpls_group.add_argument(
-        "--config-source", default="Erni workflow_demo.ipynb Week 6 default"
-    )
+    arpls_group.add_argument("--config-source", default="Erni workflow_demo.ipynb Week 6 default")
     arpls_group.add_argument("--lam", type=float, default=1e5)
     arpls_group.add_argument("--ratio", type=float, default=1e-6)
     arpls_group.add_argument("--max-iter", type=int, default=50)
@@ -264,12 +262,7 @@ def write_csv(path: Path, header: list[str], rows: list[dict[str, object]]) -> N
 
 
 def utc_now() -> str:
-    return (
-        datetime.now(timezone.utc)
-        .replace(microsecond=0)
-        .isoformat()
-        .replace("+00:00", "Z")
-    )
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def bool_text(value: bool) -> str:
@@ -394,9 +387,7 @@ def write_standard_spectrum(source: Path, dest: Path) -> tuple[str, str, str]:
         raise ValueError(f"Cannot standardize spectrum columns in {source}")
 
     with dest.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(
-            handle, fieldnames=["wavenumber_cm1", "absorbance_corrected"]
-        )
+        writer = csv.DictWriter(handle, fieldnames=["wavenumber_cm1", "absorbance_corrected"])
         writer.writeheader()
         for row in rows:
             writer.writerow(
@@ -421,8 +412,7 @@ def write_candidate_peaks(source: Path, dest: Path) -> None:
             writer.writerow(
                 {
                     "peak_index": row.get("peak_index", ""),
-                    "wavenumber_cm1": row.get("wavenumber_cm1")
-                    or row.get("wavenumber", ""),
+                    "wavenumber_cm1": row.get("wavenumber_cm1") or row.get("wavenumber", ""),
                     "absorbance_corrected": row.get("absorbance_corrected")
                     or row.get("absorbance", ""),
                 }
@@ -714,7 +704,9 @@ def detect_peak_indices(
     return np.asarray(sorted(set(int(idx) for idx in peaks)), dtype=int)
 
 
-def initial_guess(model: str, x: np.ndarray, y: np.ndarray, peak_indices: np.ndarray) -> list[float]:
+def initial_guess(
+    model: str, x: np.ndarray, y: np.ndarray, peak_indices: np.ndarray
+) -> list[float]:
     step = median_step_cm1(x)
     widths = peak_widths(y, peak_indices, rel_height=0.5)[0] if len(peak_indices) else []
     y_max = float(np.max(y)) if len(y) else 0.0
@@ -800,7 +792,15 @@ def safety_checks(
     window_width = abs(upper - lower)
     checks: list[dict[str, str]] = []
 
-    def add(reason: str, rule_id: str, parameter: str, observed: object, lo: str = "", hi: str = "", units: str = "") -> None:
+    def add(
+        reason: str,
+        rule_id: str,
+        parameter: str,
+        observed: object,
+        lo: str = "",
+        hi: str = "",
+        units: str = "",
+    ) -> None:
         checks.append(
             {
                 "reason": reason,
@@ -838,15 +838,55 @@ def safety_checks(
             "cm-1",
         )
     if amplitude <= 0:
-        add("nonpositive_model_amplitude", "SAFETY_MODEL_AMPLITUDE_POSITIVE", "raw_model_amplitude", amplitude, "0", "", "model_specific")
+        add(
+            "nonpositive_model_amplitude",
+            "SAFETY_MODEL_AMPLITUDE_POSITIVE",
+            "raw_model_amplitude",
+            amplitude,
+            "0",
+            "",
+            "model_specific",
+        )
     if sigma <= 0:
-        add("nonpositive_raw_width", "SAFETY_RAW_WIDTH_POSITIVE", "raw_width_parameter", sigma, "0", "", "model_specific")
+        add(
+            "nonpositive_raw_width",
+            "SAFETY_RAW_WIDTH_POSITIVE",
+            "raw_width_parameter",
+            sigma,
+            "0",
+            "",
+            "model_specific",
+        )
     if height <= 0:
-        add("nonpositive_peak_height", "SAFETY_HEIGHT_POSITIVE", "peak_height", height, "0", "", "absorbance")
+        add(
+            "nonpositive_peak_height",
+            "SAFETY_HEIGHT_POSITIVE",
+            "peak_height",
+            height,
+            "0",
+            "",
+            "absorbance",
+        )
     if area <= 0:
-        add("nonpositive_peak_area", "SAFETY_AREA_POSITIVE", "peak_area", area, "0", "", "absorbance*cm-1")
+        add(
+            "nonpositive_peak_area",
+            "SAFETY_AREA_POSITIVE",
+            "peak_area",
+            area,
+            "0",
+            "",
+            "absorbance*cm-1",
+        )
     if fwhm <= 0 or fwhm >= window_width:
-        add("invalid_fwhm", "SAFETY_FWHM_RANGE", "fwhm_cm1", fwhm, "0", "fitting_window_width_cm1", "cm-1")
+        add(
+            "invalid_fwhm",
+            "SAFETY_FWHM_RANGE",
+            "fwhm_cm1",
+            fwhm,
+            "0",
+            "fitting_window_width_cm1",
+            "cm-1",
+        )
     return checks
 
 
@@ -951,7 +991,11 @@ def run_fitting(
         baseline_qc_pass = parse_bool(meta.get("baseline_qc_pass"), default=True)
         baseline_reason = meta.get("baseline_qc_reason", "")
         input_reason = meta.get("input_qc_reason", "")
-        threshold_value = clean_number(args.peak_prominence_fraction) if candidate_source == "internal_find_peaks" else ""
+        threshold_value = (
+            clean_number(args.peak_prominence_fraction)
+            if candidate_source == "internal_find_peaks"
+            else ""
+        )
 
         for model in MODELS:
             attempt_id = f"{processing_run_id}-{model.lower()}"
@@ -1080,7 +1124,9 @@ def run_fitting(
                         "peak_assignment_status": "unassigned",
                         "reference_evidence_ids": "",
                         "matched_reference_centre_cm1": "",
-                        "initial_centre_cm1": clean_number(fit_x[peak_indices[peak_index - 1]]) if peak_index - 1 < len(peak_indices) else "",
+                        "initial_centre_cm1": clean_number(fit_x[peak_indices[peak_index - 1]])
+                        if peak_index - 1 < len(peak_indices)
+                        else "",
                         "initial_model_amplitude": "",
                         "initial_fwhm_cm1": "",
                         "fitted_centre_cm1": clean_number(centre),
@@ -1196,7 +1242,9 @@ def run_fitting(
                     "fit_valid": bool_text(fit_valid),
                     "fit_valid_reason": fit_valid_reason,
                     "needs_manual_review": bool_text(needs_manual_review),
-                    "manual_review_reason": "; ".join(str(event["message"]) for event in review_events),
+                    "manual_review_reason": "; ".join(
+                        str(event["message"]) for event in review_events
+                    ),
                     "overall_qc": bool_text(overall_qc),
                     "overall_qc_reason": "; ".join(overall_reasons),
                     "triggered_rule_count": len(attempt_events),
@@ -1346,7 +1394,10 @@ def summarize(directory: Path) -> dict[str, float | int | None]:
         "valid_peaks": sum(bool_value(row.get("peak_valid", "")) for row in peaks),
         "overall_qc_pass_attempts": sum(bool_value(row.get("overall_qc", "")) for row in attempts),
         "manual_review_events": sum(row.get("severity") in {"WARN", "REVIEW"} for row in events),
-        "failed_fit_events": sum(row.get("severity") == "FAIL" and bool_value(row.get("affects_fit_valid", "")) for row in events),
+        "failed_fit_events": sum(
+            row.get("severity") == "FAIL" and bool_value(row.get("affects_fit_valid", ""))
+            for row in events
+        ),
         "mean_rmse": mean(rmse),
         "median_rmse": median(rmse),
         "mean_residual_max_abs": mean(residual_max_abs),
@@ -1383,7 +1434,9 @@ def write_comparison(
             )
 
 
-def read_xy(path: Path, x_col: str = "wavenumber_cm1", y_col: str = "absorbance_corrected") -> tuple[np.ndarray, np.ndarray]:
+def read_xy(
+    path: Path, x_col: str = "wavenumber_cm1", y_col: str = "absorbance_corrected"
+) -> tuple[np.ndarray, np.ndarray]:
     rows = read_csv(path)
     x = np.asarray([float(row[x_col]) for row in rows], dtype=float)
     y = np.asarray([float(row[y_col]) for row in rows], dtype=float)
@@ -1499,7 +1552,9 @@ def make_plots(
             for row in peaks_by_attempt[attempt["fit_attempt_id"]]
             if row["peak_height"]
         ]
-        axes[0].scatter(centres, heights, s=26, color="#0072B2", zorder=3, label="fitted peak centres")
+        axes[0].scatter(
+            centres, heights, s=26, color="#0072B2", zorder=3, label="fitted peak centres"
+        )
         for centre in centres:
             axes[0].axvline(centre, color="#0072B2", alpha=0.18, linewidth=0.8)
         axes[0].set_ylabel("Corrected absorbance")
@@ -1537,7 +1592,9 @@ def make_plots(
 
     if control_metadata is not None and good is not None:
         control_rows = read_csv(control_metadata)
-        control_match = next((row for row in control_rows if row["sample_id"] == good["sample_id"]), None)
+        control_match = next(
+            (row for row in control_rows if row["sample_id"] == good["sample_id"]), None
+        )
         erni_match = erni_by_run[good["processing_run_id"]]
         if control_match is not None:
             control_dir = control_metadata.resolve().parent
@@ -1566,7 +1623,10 @@ def make_plots(
         "Residual plots are included to separate rule-level validity from residual-pattern review.",
     ]
     if control_metadata is not None:
-        captions.insert(0, "Control and Erni arPLS corrected spectra are plotted for matched samples when available.")
+        captions.insert(
+            0,
+            "Control and Erni arPLS corrected spectra are plotted for matched samples when available.",
+        )
     (plot_dir / "figure_captions.txt").write_text("\n".join(captions) + "\n", encoding="utf-8")
 
 

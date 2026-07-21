@@ -13,13 +13,12 @@ from prospecpy.anchor_points import (
     get_start_end_anchorpoints,
 )
 from prospecpy.baseline import (
-    arpls_baseline,   # arPLS 6.19
+    arpls_baseline_second_deriv_weights,  # 7.1 arPLS
     baseline_correction,
     baseline_spline,
     get_baseline_peak_index,
     plot_baseline_corrected_data,
     raw_spline,
-    arpls_baseline_second_deriv_weights, # 7.1 arPLS
 )
 from prospecpy.cut_range import cut_range_subtraction_multiple_wv
 from prospecpy.peak_fit import peak_fit
@@ -353,7 +352,7 @@ class ProSpecPy:  # class object running to organize script from the src directo
 
         else:
             print("Please set and save the thresholds and adjustment factor for baseline spline!")
-    
+
     # arPLS baseline correction method  6.19
     def subtract_baseline_arpls(
         self,

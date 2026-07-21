@@ -3,7 +3,7 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy import sparse      # arPLS 6.19
+from scipy import sparse  # arPLS 6.19
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
 from scipy.sparse.linalg import spsolve  # arPLS 6.19
@@ -142,7 +142,8 @@ def arpls_baseline(raw_absorbance, lam=1e5, ratio=1e-6, max_iter=50):
 
     return baseline
 
-def arpls_baseline_second_deriv_weights(             # peak-position guided arPLS
+
+def arpls_baseline_second_deriv_weights(  # peak-position guided arPLS
     raw_absorbance,
     raw_wavenumber,
     peak_wavenumbers,
@@ -210,6 +211,7 @@ def arpls_baseline_second_deriv_weights(             # peak-position guided arPL
         weights = new_weights
 
     return baseline
+
 
 def get_baseline_peak_index(baseline_corrected_abs, rawdata_wavenumber, raw_data_peak_wv):
     # get all the peaks index in the baselinecorrected data with no thresholds
