@@ -51,7 +51,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-
 SAMPLE_POTENTIALS_MV = {
     "011a": 0,
     "011b": -50,
@@ -111,9 +110,7 @@ def read_manual_data(path: Path) -> tuple[np.ndarray, dict[float, np.ndarray]]:
     # - row 1, columns I onward: reference peak centres
     # - column H: mV vs Ag/AgCl
     # - rows 2 onward, columns I onward: manual maximum peak heights
-    reference_centres = pd.to_numeric(
-        raw.iloc[0, 8:], errors="coerce"
-    ).to_numpy(dtype=float)
+    reference_centres = pd.to_numeric(raw.iloc[0, 8:], errors="coerce").to_numpy(dtype=float)
 
     manual_by_potential: dict[float, np.ndarray] = {}
 
@@ -148,32 +145,20 @@ def read_gaussian_fits(path: Path) -> pd.DataFrame:
     }
     missing = required_columns - set(fitted.columns)
     if missing:
-        raise ValueError(
-            f"fitted_peaks.csv is missing columns: {sorted(missing)}"
-        )
+        raise ValueError(f"fitted_peaks.csv is missing columns: {sorted(missing)}")
 
     gaussian = fitted[
-        fitted["fit_attempt_id"]
-        .astype(str)
-        .str.contains("gaussian", case=False, na=False)
+        fitted["fit_attempt_id"].astype(str).str.contains("gaussian", case=False, na=False)
     ].copy()
 
     gaussian["sample_id"] = (
-        gaussian["fit_attempt_id"]
-        .astype(str)
-        .str.extract(r"(011[a-z])", expand=False)
+        gaussian["fit_attempt_id"].astype(str).str.extract(r"(011[a-z])", expand=False)
     )
 
-    gaussian["fitted_centre_cm1"] = pd.to_numeric(
-        gaussian["fitted_centre_cm1"], errors="coerce"
-    )
-    gaussian["peak_height"] = pd.to_numeric(
-        gaussian["peak_height"], errors="coerce"
-    )
+    gaussian["fitted_centre_cm1"] = pd.to_numeric(gaussian["fitted_centre_cm1"], errors="coerce")
+    gaussian["peak_height"] = pd.to_numeric(gaussian["peak_height"], errors="coerce")
 
-    gaussian = gaussian.dropna(
-        subset=["sample_id", "fitted_centre_cm1", "peak_height"]
-    )
+    gaussian = gaussian.dropna(subset=["sample_id", "fitted_centre_cm1", "peak_height"])
 
     if gaussian.empty:
         raise ValueError("No valid Gaussian fit rows were found.")
@@ -187,9 +172,7 @@ def nearest_manual_potential(
 ) -> float:
     differences = np.abs(available_potentials - sample_potential)
     minimum_difference = float(np.min(differences))
-    tied = available_potentials[
-        np.isclose(differences, minimum_difference)
-    ]
+    tied = available_potentials[np.isclose(differences, minimum_difference)]
 
     # In an exact tie, choose the more negative potential.
     # Example: -475 is equally close to -425 and -525, so choose -525.
@@ -202,9 +185,7 @@ def build_comparison(
     gaussian: pd.DataFrame,
     centre_tolerance: float,
 ) -> pd.DataFrame:
-    available_potentials = np.asarray(
-        sorted(manual_by_potential), dtype=float
-    )
+    available_potentials = np.asarray(sorted(manual_by_potential), dtype=float)
 
     rows: list[dict[str, object]] = []
 
@@ -213,16 +194,10 @@ def build_comparison(
             float(sample_potential),
             available_potentials,
         )
-        potential_gap = abs(
-            float(sample_potential) - manual_potential
-        )
+        potential_gap = abs(float(sample_potential) - manual_potential)
 
-        sample_fits = gaussian[
-            gaussian["sample_id"] == sample_id
-        ].copy()
-        sample_fits = sample_fits.sort_values(
-            "fitted_centre_cm1"
-        )
+        sample_fits = gaussian[gaussian["sample_id"] == sample_id].copy()
+        sample_fits = sample_fits.sort_values("fitted_centre_cm1")
 
         manual_heights = manual_by_potential[manual_potential]
 
@@ -239,9 +214,7 @@ def build_comparison(
             row: dict[str, object] = {
                 "baseline_method": "Original ProSpecPy",
                 "sample_id": sample_id,
-                "sample_potential_mV_vs_AgAgCl": float(
-                    sample_potential
-                ),
+                "sample_potential_mV_vs_AgAgCl": float(sample_potential),
                 "manual_potential_mV_vs_AgAgCl": manual_potential,
                 "potential_gap_mV": potential_gap,
                 "manual_centre_cm1": float(reference_centre),
@@ -258,36 +231,23 @@ def build_comparison(
             }
 
             if not sample_fits.empty:
-                distances = (
-                    sample_fits["fitted_centre_cm1"]
-                    - float(reference_centre)
-                ).abs()
+                distances = (sample_fits["fitted_centre_cm1"] - float(reference_centre)).abs()
 
                 nearest_index = distances.idxmin()
                 nearest = sample_fits.loc[nearest_index]
 
-                fitted_centre = float(
-                    nearest["fitted_centre_cm1"]
-                )
+                fitted_centre = float(nearest["fitted_centre_cm1"])
                 fitted_height = float(nearest["peak_height"])
-                centre_error = abs(
-                    fitted_centre - float(reference_centre)
-                )
+                centre_error = abs(fitted_centre - float(reference_centre))
 
                 row["nearest_fitted_centre_cm1"] = fitted_centre
                 row["nearest_centre_distance_cm1"] = centre_error
 
                 if centre_error <= centre_tolerance:
-                    height_error = abs(
-                        fitted_height - float(manual_height)
-                    )
+                    height_error = abs(fitted_height - float(manual_height))
 
                     if manual_height != 0:
-                        relative_error = (
-                            height_error
-                            / abs(float(manual_height))
-                            * 100.0
-                        )
+                        relative_error = height_error / abs(float(manual_height)) * 100.0
                     else:
                         relative_error = np.nan
 
@@ -299,15 +259,11 @@ def build_comparison(
                             "height_abs_error": height_error,
                             "height_relative_error_percent": relative_error,
                             "peak_match": True,
-                            "match_reason": (
-                                "nearest_peak_within_tolerance"
-                            ),
+                            "match_reason": ("nearest_peak_within_tolerance"),
                         }
                     )
                 else:
-                    row["match_reason"] = (
-                        "nearest_peak_outside_centre_tolerance"
-                    )
+                    row["match_reason"] = "nearest_peak_outside_centre_tolerance"
 
             rows.append(row)
 
@@ -321,20 +277,16 @@ def build_comparison(
         matched["_fitted_key"] = (
             matched["sample_id"].astype(str)
             + "|"
-            + matched["original_centre_cm1"]
-            .round(6)
-            .astype(str)
+            + matched["original_centre_cm1"].round(6).astype(str)
         )
 
-        duplicate_mask = matched.duplicated(
-            "_fitted_key", keep="first"
-        )
+        duplicate_mask = matched.duplicated("_fitted_key", keep="first")
         duplicate_indices = matched.index[duplicate_mask]
 
         result.loc[duplicate_indices, "peak_match"] = False
-        result.loc[
-            duplicate_indices, "match_reason"
-        ] = "fitted_peak_already_used_by_closer_manual_peak"
+        result.loc[duplicate_indices, "match_reason"] = (
+            "fitted_peak_already_used_by_closer_manual_peak"
+        )
 
         for column in [
             "original_centre_cm1",
@@ -367,12 +319,8 @@ def normalized_height_error(rows: pd.DataFrame) -> float:
     if rows.empty:
         return np.nan
 
-    manual = pd.to_numeric(
-        rows["manual_height"], errors="coerce"
-    )
-    errors = pd.to_numeric(
-        rows["height_abs_error"], errors="coerce"
-    )
+    manual = pd.to_numeric(rows["manual_height"], errors="coerce")
+    errors = pd.to_numeric(rows["height_abs_error"], errors="coerce")
 
     valid = manual.notna() & errors.notna()
     manual = manual[valid]
@@ -398,9 +346,7 @@ def summarize_subset(
                     "group": group_label,
                     "metric": "matched_peak_count",
                     "value": 0,
-                    "notes": (
-                        f"No valid matches for {potential_rule}."
-                    ),
+                    "notes": (f"No valid matches for {potential_rule}."),
                 }
             ]
         )
@@ -421,52 +367,39 @@ def summarize_subset(
         {
             "group": group_label,
             "metric": "centre_MAE_cm1",
-            "value": safe_mean(
-                rows["centre_abs_error_cm1"]
-            ),
+            "value": safe_mean(rows["centre_abs_error_cm1"]),
             "notes": "Mean absolute peak-centre error.",
         },
         {
             "group": group_label,
             "metric": "centre_median_absolute_error_cm1",
-            "value": safe_median(
-                rows["centre_abs_error_cm1"]
-            ),
+            "value": safe_median(rows["centre_abs_error_cm1"]),
             "notes": "Median absolute peak-centre error.",
         },
         {
             "group": group_label,
             "metric": "centre_max_absolute_error_cm1",
-            "value": safe_max(
-                rows["centre_abs_error_cm1"]
-            ),
+            "value": safe_max(rows["centre_abs_error_cm1"]),
             "notes": "Largest peak-centre error.",
         },
         {
             "group": group_label,
             "metric": "height_MAE",
-            "value": safe_mean(
-                rows["height_abs_error"]
-            ),
+            "value": safe_mean(rows["height_abs_error"]),
             "notes": "Mean absolute peak-height error.",
         },
         {
             "group": group_label,
             "metric": "height_median_absolute_error",
-            "value": safe_median(
-                rows["height_abs_error"]
-            ),
+            "value": safe_median(rows["height_abs_error"]),
             "notes": "Median absolute peak-height error.",
         },
         {
             "group": group_label,
             "metric": "height_mean_relative_error_percent",
-            "value": safe_mean(
-                rows["height_relative_error_percent"]
-            ),
+            "value": safe_mean(rows["height_relative_error_percent"]),
             "notes": (
-                "Mean row-wise relative height error; "
-                "can be inflated by very small manual heights."
+                "Mean row-wise relative height error; can be inflated by very small manual heights."
             ),
         },
         {
@@ -494,17 +427,11 @@ def make_grouped_outputs(
 ]:
     matched = comparison[comparison["peak_match"]].copy()
 
-    exact = matched[
-        matched["potential_gap_mV"] == 0
-    ].copy()
+    exact = matched[matched["potential_gap_mV"] == 0].copy()
 
-    within_25 = matched[
-        matched["potential_gap_mV"] <= 25
-    ].copy()
+    within_25 = matched[matched["potential_gap_mV"] <= 25].copy()
 
-    within_50 = matched[
-        matched["potential_gap_mV"] <= 50
-    ].copy()
+    within_50 = matched[matched["potential_gap_mV"] <= 50].copy()
 
     return matched, exact, within_25, within_50
 
@@ -596,18 +523,12 @@ def make_sample_summary(
                 "manual_potential_mV_vs_AgAgCl": manual_potential,
                 "potential_gap_mV": potential_gap,
                 "matched_peak_count": len(group),
-                "centre_MAE_cm1": safe_mean(
-                    group["centre_abs_error_cm1"]
-                ),
-                "height_MAE": safe_mean(
-                    group["height_abs_error"]
-                ),
+                "centre_MAE_cm1": safe_mean(group["centre_abs_error_cm1"]),
+                "height_MAE": safe_mean(group["height_abs_error"]),
                 "height_mean_relative_error_percent": safe_mean(
                     group["height_relative_error_percent"]
                 ),
-                "height_normalized_aggregate_error": (
-                    normalized_height_error(group)
-                ),
+                "height_normalized_aggregate_error": (normalized_height_error(group)),
             }
         )
 
@@ -662,9 +583,7 @@ def create_comparison_plots(
 
         ax.set_xlabel("Manual peak centre (cm$^{-1}$)")
         ax.set_ylabel("Original anchor+spline fitted peak centre (cm$^{-1}$)")
-        ax.set_title(
-            f"Manual vs Original anchor+spline peak centres — {title_suffix}"
-        )
+        ax.set_title(f"Manual vs Original anchor+spline peak centres — {title_suffix}")
         ax.legend()
 
         fig.tight_layout()
@@ -674,9 +593,7 @@ def create_comparison_plots(
         )
         plt.close(fig)
 
-    height_rows = rows.dropna(
-        subset=["manual_height", "original_height"]
-    )
+    height_rows = rows.dropna(subset=["manual_height", "original_height"])
 
     if not height_rows.empty:
         fig, ax = plt.subplots(figsize=(7, 6))
@@ -694,9 +611,7 @@ def create_comparison_plots(
 
         ax.set_xlabel("Manual peak height")
         ax.set_ylabel("Original anchor+spline fitted peak height")
-        ax.set_title(
-            f"Manual vs Original anchor+spline peak heights — {title_suffix}"
-        )
+        ax.set_title(f"Manual vs Original anchor+spline peak heights — {title_suffix}")
         ax.legend()
 
         fig.tight_layout()
@@ -736,9 +651,7 @@ def main() -> None:
         exist_ok=True,
     )
 
-    reference_centres, manual_by_potential = (
-        read_manual_data(args.manual_xlsx)
-    )
+    reference_centres, manual_by_potential = read_manual_data(args.manual_xlsx)
 
     gaussian = read_gaussian_fits(args.fitted_peaks)
 
@@ -749,9 +662,7 @@ def main() -> None:
         centre_tolerance=args.centre_tolerance,
     )
 
-    matched_all, exact, within_25, within_50 = (
-        make_grouped_outputs(comparison)
-    )
+    matched_all, exact, within_25, within_50 = make_grouped_outputs(comparison)
 
     (
         summary_all,
@@ -767,8 +678,7 @@ def main() -> None:
     sample_summary = make_sample_summary(matched_all)
 
     comparison.to_csv(
-        args.output_dir
-        / "all_manual_peaks_with_match_status.csv",
+        args.output_dir / "all_manual_peaks_with_match_status.csv",
         index=False,
     )
 

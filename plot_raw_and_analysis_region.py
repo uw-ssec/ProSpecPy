@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 from brukeropusreader import read_file
-
 
 # =========================================================
 # 1. Project paths
@@ -12,13 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 RAW_FILE_NAME = "011h as iso Hyd2 dark titration -300mV.0006"
 
-RAW_FILE = (
-    PROJECT_ROOT
-    / "data"
-    / "opus_files"
-    / "pH6"
-    / RAW_FILE_NAME
-)
+RAW_FILE = PROJECT_ROOT / "data" / "opus_files" / "pH6" / RAW_FILE_NAME
 
 OUTPUT_FOLDER = PROJECT_ROOT / "paper_figures"
 OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
@@ -44,8 +39,7 @@ OUTPUT_DPI = 600
 # =========================================================
 if not RAW_FILE.exists():
     raise FileNotFoundError(
-        f"Raw OPUS file was not found:\n{RAW_FILE}\n\n"
-        "Check the file name and raw-data folder."
+        f"Raw OPUS file was not found:\n{RAW_FILE}\n\nCheck the file name and raw-data folder."
     )
 
 opus_data = read_file(RAW_FILE)
@@ -85,10 +79,7 @@ absorbance = absorbance[sort_order]
 main_high = max(MAIN_DISPLAY_REGION)
 main_low = min(MAIN_DISPLAY_REGION)
 
-main_mask = (
-    (wavenumber <= main_high)
-    & (wavenumber >= main_low)
-)
+main_mask = (wavenumber <= main_high) & (wavenumber >= main_low)
 
 main_x = wavenumber[main_mask]
 main_y = absorbance[main_mask]
@@ -100,10 +91,7 @@ if main_x.size == 0:
 analysis_high = max(ANALYSIS_REGION)
 analysis_low = min(ANALYSIS_REGION)
 
-analysis_mask = (
-    (wavenumber <= analysis_high)
-    & (wavenumber >= analysis_low)
-)
+analysis_mask = (wavenumber <= analysis_high) & (wavenumber >= analysis_low)
 
 analysis_x = wavenumber[analysis_mask]
 analysis_y = absorbance[analysis_mask]
@@ -173,22 +161,14 @@ ax_raw.text(
 # =========================================================
 analysis_y_min_main = float(analysis_y.min())
 analysis_y_max_main = float(analysis_y.max())
-analysis_y_range_main = (
-    analysis_y_max_main - analysis_y_min_main
-)
+analysis_y_range_main = analysis_y_max_main - analysis_y_min_main
 
 if analysis_y_range_main == 0:
     analysis_y_range_main = 1.0
 
-box_bottom = (
-    analysis_y_min_main
-    - 0.10 * analysis_y_range_main
-)
+box_bottom = analysis_y_min_main - 0.10 * analysis_y_range_main
 
-box_top = (
-    analysis_y_max_main
-    + 0.10 * analysis_y_range_main
-)
+box_top = analysis_y_max_main + 0.10 * analysis_y_range_main
 
 ax_raw.plot(
     [analysis_high, analysis_low],
