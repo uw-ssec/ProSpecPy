@@ -222,9 +222,7 @@ def parse_args() -> argparse.Namespace:
     fitting_group.add_argument("--max-peaks", type=int, default=8)
     fitting_group.add_argument("--maxfev", type=int, default=20000)
 
-    original_group = parser.add_argument_group(
-        "Original ProSpecPy anchor+spline metadata defaults"
-    )
+    original_group = parser.add_argument_group("Original ProSpecPy anchor+spline metadata defaults")
     original_group.add_argument("--baseline-family", default="Original ProSpecPy")
     original_group.add_argument("--baseline-method", default="anchor_point_spline")
     original_group.add_argument("--baseline-implementation", default="ProSpecPy_original")
@@ -439,6 +437,7 @@ def run_native_original(
     from prospecpy.cut_range import cut_range_subtract_prospecpy_objects
     from prospecpy.io import import_run_data
     from prospecpy.second_deriv import second_deriv_prospecpy_objects
+
     spectra = import_run_data(
         sample_dir,
         input_type="raw spectra",
@@ -495,9 +494,7 @@ def prepare_erni_inputs(
     (output_dir / "candidate_peaks").mkdir(exist_ok=True)
     source_files = sorted(erni_root.rglob("baseline_corrected_data.csv"))
     if not source_files:
-        raise FileNotFoundError(
-            f"No baseline_corrected_data.csv files found under {erni_root}"
-        )
+        raise FileNotFoundError(f"No baseline_corrected_data.csv files found under {erni_root}")
     seen_run_ids: set[str] = set()
     metadata_rows: list[dict[str, str]] = []
     for source in source_files:
@@ -522,31 +519,33 @@ def prepare_erni_inputs(
                 output_dir / "candidate_peaks" / peak_dest_name,
             )
             candidate_peak_file = f"candidate_peaks/{peak_dest_name}"
-        metadata_rows.append({
-            "processing_run_id": run_id,
-            "sample_id": sample_id,
-            "raw_file": source.parent.name,
-            "baseline_family": args.baseline_family,
-            "baseline_method": args.baseline_method,
-            "baseline_implementation": args.baseline_implementation,
-            "baseline_config_json": baseline_config(args),
-            "corrected_spectrum_file": f"corrected_spectra/{spectrum_dest_name}",
-            "baseline_qc_pass": qc_pass,
-            "baseline_qc_reason": qc_reason,
-            "input_qc_pass": "TRUE",
-            "input_qc_reason": "",
-            "baseline_over_fraction": "",
-            "baseline_max_overshoot": "",
-            "baseline_oversubtraction_area": "",
-            "zero_clipping_fraction": zero_fraction,
-            "candidate_peak_file": candidate_peak_file,
-            "notes": (
-                "Prepared from the Original ProSpecPy anchor-point + spline "
-                "baseline output. Negative corrected values are clipped to zero "
-                "by the original implementation. Baseline QC is provisional "
-                "numeric availability QC, not a validated baseline-quality threshold."
-            ),
-        })
+        metadata_rows.append(
+            {
+                "processing_run_id": run_id,
+                "sample_id": sample_id,
+                "raw_file": source.parent.name,
+                "baseline_family": args.baseline_family,
+                "baseline_method": args.baseline_method,
+                "baseline_implementation": args.baseline_implementation,
+                "baseline_config_json": baseline_config(args),
+                "corrected_spectrum_file": f"corrected_spectra/{spectrum_dest_name}",
+                "baseline_qc_pass": qc_pass,
+                "baseline_qc_reason": qc_reason,
+                "input_qc_pass": "TRUE",
+                "input_qc_reason": "",
+                "baseline_over_fraction": "",
+                "baseline_max_overshoot": "",
+                "baseline_oversubtraction_area": "",
+                "zero_clipping_fraction": zero_fraction,
+                "candidate_peak_file": candidate_peak_file,
+                "notes": (
+                    "Prepared from the Original ProSpecPy anchor-point + spline "
+                    "baseline output. Negative corrected values are clipped to zero "
+                    "by the original implementation. Baseline QC is provisional "
+                    "numeric availability QC, not a validated baseline-quality threshold."
+                ),
+            }
+        )
     metadata_path = output_dir / "baseline_metadata.csv"
     with metadata_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(metadata_rows[0]))
@@ -1535,7 +1534,9 @@ def make_plots(
             sharex=True,
             gridspec_kw={"height_ratios": [3, 1]},
         )
-        axes[0].plot(x, y, color="#222222", linewidth=1.4, label="Original anchor+spline corrected spectrum")
+        axes[0].plot(
+            x, y, color="#222222", linewidth=1.4, label="Original anchor+spline corrected spectrum"
+        )
         axes[0].plot(x, fit_y, color="#D55E00", linewidth=1.3, label="Gaussian total fit")
         centres = [
             float(row["fitted_centre_cm1"])
@@ -1580,7 +1581,9 @@ def make_plots(
         style_axes(axes[1])
         axes[1].invert_xaxis()
         fig.tight_layout()
-        path = plot_dir / f"sample_{attempt['sample_id']}_original_anchor_spline_gaussian_{label}.png"
+        path = (
+            plot_dir / f"sample_{attempt['sample_id']}_original_anchor_spline_gaussian_{label}.png"
+        )
         fig.savefig(path, dpi=220)
         plt.close(fig)
         manifest.append(str(path))
@@ -1599,15 +1602,25 @@ def make_plots(
             ex, ey = read_xy(erni_path)
             fig, ax = plt.subplots(1, 1, figsize=(9.5, 4.8))
             ax.plot(cx, cy, color="#0072B2", linewidth=1.4, label="control corrected spectrum")
-            ax.plot(ex, ey, color="#D55E00", linewidth=1.4, label="Erni Original anchor+spline corrected spectrum")
-            ax.set_title(f"Sample {good['sample_id']}: control vs Original ProSpecPy anchor+spline corrected spectra")
+            ax.plot(
+                ex,
+                ey,
+                color="#D55E00",
+                linewidth=1.4,
+                label="Erni Original anchor+spline corrected spectrum",
+            )
+            ax.set_title(
+                f"Sample {good['sample_id']}: control vs Original ProSpecPy anchor+spline corrected spectra"
+            )
             ax.set_xlabel("Wavenumber (cm$^{-1}$)")
             ax.set_ylabel("Corrected absorbance")
             ax.legend(loc="best", fontsize=8)
             style_axes(ax)
             ax.invert_xaxis()
             fig.tight_layout()
-            path = plot_dir / f"sample_{good['sample_id']}_control_vs_original_anchor_spline_input.png"
+            path = (
+                plot_dir / f"sample_{good['sample_id']}_control_vs_original_anchor_spline_input.png"
+            )
             fig.savefig(path, dpi=220)
             plt.close(fig)
             manifest.insert(0, str(path))
@@ -1651,7 +1664,9 @@ def main() -> None:
         erni_metadata = args.erni_metadata
     else:
         if args.erni_output_root is None:
-            raise SystemExit("Provide --erni-output-root, --erni-metadata, or --run-native-original.")
+            raise SystemExit(
+                "Provide --erni-output-root, --erni-metadata, or --run-native-original."
+            )
         erni_metadata = prepare_erni_inputs(args, args.erni_output_root, erni_input_dir)
 
     print("Running downstream fitting/QC on Original ProSpecPy anchor+spline spectra...")
