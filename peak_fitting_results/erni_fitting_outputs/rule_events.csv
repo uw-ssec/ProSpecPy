@@ -1,1 +1,0 @@
-rule_event_id,fit_attempt_id,peak_result_id,rule_namespace,rule_id,bound_profile_id,event_scope,severity,parameter,observed_value,lower_bound_used,upper_bound_used,units,violation_action,affects_fit_valid,affects_overall_qc,message,evidence_source_ids,created_at_utc

@@ -1,2 +1,0 @@
-peak_fitting_results/report_plots/sample_011a_original_anchor_spline_gaussian_best_fit.png
-peak_fitting_results/report_plots/sample_011a_original_anchor_spline_gaussian_review_residual.png
