@@ -1,0 +1,2 @@
+The downstream wrapper can consume Original ProSpecPy anchor+spline-corrected spectra and export valid peak parameters.
+Residual plots are included to separate rule-level validity from residual-pattern review.
