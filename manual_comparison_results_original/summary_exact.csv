@@ -1,0 +1,10 @@
+group,metric,value,notes
+exact_potential,matched_peak_count,6.0,potential_gap_mV == 0
+exact_potential,unique_sample_count,5.0,potential_gap_mV == 0
+exact_potential,centre_MAE_cm1,1.1614681597094432,Mean absolute peak-centre error.
+exact_potential,centre_median_absolute_error_cm1,1.3845967757748667,Median absolute peak-centre error.
+exact_potential,centre_max_absolute_error_cm1,1.494048402927092,Largest peak-centre error.
+exact_potential,height_MAE,0.03905308688395775,Mean absolute peak-height error.
+exact_potential,height_median_absolute_error,0.0342622829332422,Median absolute peak-height error.
+exact_potential,height_mean_relative_error_percent,83.6517277449201,Mean row-wise relative height error; can be inflated by very small manual heights.
+exact_potential,height_normalized_aggregate_error,0.6816142226015839,sum(abs(Original-manual)) / sum(abs(manual)); more stable than averaging row-wise percentages.
