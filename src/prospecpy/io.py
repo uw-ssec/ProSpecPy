@@ -78,7 +78,7 @@ def batch_id_sample_name(filepath):
         The extracted sample name, if present.
     """
     # Regular expression to find and extract the portion of the path after 'opus_files'
-    batch_id_file_name_pattern = re.search("opus_files\s*(.*)", filepath)
+    batch_id_file_name_pattern = re.search(r"opus_files\s*(.*)", filepath)
     # Extract the matched portion or set to None if not found
     batch_id_file_name_path = (
         batch_id_file_name_pattern.group(1) if batch_id_file_name_pattern else None
